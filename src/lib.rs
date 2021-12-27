@@ -275,13 +275,13 @@ impl Pier {
         table.set_format(*COOL_FORMAT);
         // cyan titles
         table.set_titles(row![
-            Fc -> "Alias",
-            Fc -> "Tags",
-            Fc -> "Query",
-            Fc -> "Data Sources",
-            Fc -> "Description",
-            Fc -> "References",
-            ]);
+        Fc -> "Alias",
+        Fc -> "Tags",
+        Fc -> "Query",
+        Fc -> "Data Sources",
+        Fc -> "Description",
+        Fc -> "References",
+        ]);
 
         for (alias, script) in self.config.scripts.iter() {
             let descp = match &script.description.as_ref() {
@@ -306,12 +306,12 @@ impl Pier {
                     }
                 }
                 (None, Some(script_tags)) => {
-                       script_tags.join(",");
-                       continue;
+                    script_tags.join(",");
+                    continue;
                 }
                 (None, None) => {
-                       "";
-                       continue;
+                    "";
+                    continue;
                 }
                 _ => (),
             };
