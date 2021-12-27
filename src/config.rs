@@ -1,9 +1,9 @@
-use std::{collections::BTreeMap, fmt, fs, path::PathBuf};
 use std::collections::btree_map::Iter;
 use std::marker::PhantomData;
+use std::{collections::BTreeMap, fmt, fs, path::PathBuf};
 
-use serde::{Deserialize, Deserializer, Serialize};
 use serde::de::{MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize};
 use snafu::ResultExt;
 
 use super::error::*;
@@ -12,13 +12,12 @@ use super::PierResult;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct ConfigDefaultOpts {
-    // Default interpreter to use if script doesn't have a shebang.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub interpreter: Option<Vec<String>>,
 
-    // Default width of the command when listing the scripts.
+    // Default width of the query when listing the scripts.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub command_width: Option<usize>,
+    pub query_width: Option<usize>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -90,20 +89,19 @@ impl Scripts {
 }
 
 struct ScriptsVisitor {
-    marker: PhantomData<fn() -> Scripts>
+    marker: PhantomData<fn() -> Scripts>,
 }
 
 impl ScriptsVisitor {
     fn new() -> Self {
         ScriptsVisitor {
-            marker: PhantomData
+            marker: PhantomData,
         }
     }
 }
 // Gives us an iterating over map entries during deserialization process where we can access entry
 // key and modify the script to populate alias.
-impl<'de> Visitor<'de> for ScriptsVisitor
-{
+impl<'de> Visitor<'de> for ScriptsVisitor {
     type Value = Scripts;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -111,8 +109,8 @@ impl<'de> Visitor<'de> for ScriptsVisitor
     }
 
     fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
-        where
-            M: MapAccess<'de>,
+    where
+        M: MapAccess<'de>,
     {
         let mut map = Scripts(BTreeMap::new());
 
@@ -125,11 +123,10 @@ impl<'de> Visitor<'de> for ScriptsVisitor
     }
 }
 // Custom serde deserialization
-impl<'de> Deserialize<'de> for Scripts
-{
+impl<'de> Deserialize<'de> for Scripts {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         deserializer.deserialize_map(ScriptsVisitor::new())
     }

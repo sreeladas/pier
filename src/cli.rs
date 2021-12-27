@@ -5,20 +5,28 @@ use structopt::{clap::AppSettings, StructOpt};
 pub enum CliSubcommand {
     /// Add a new script to config.
     Add {
-        /// The command/script content to be executed.
+        /// The query/script content.
         /// If this argument is not found it will open your $EDITOR for you to enter the script into.
-        command: Option<String>,
+        query: Option<String>,
 
         /// The alias or name for the script.
         #[structopt(short = "a", long = "alias")]
         alias: String,
 
+        /// Set which sources this query should be run on.
+        #[structopt(short = "s", long = "sources")]
+        sources: Option<Vec<String>>,
+
         /// The description for the script.
         #[structopt(short = "d", long = "--description")]
         description: Option<String>,
 
+        /// Set references that explain this query (Notion, Jira, github, zendesk).
+        #[structopt(short = "r", long = "refs")]
+        references: Option<Vec<String>>,
+
         /// Set which tags the script belongs to.
-        #[structopt(short = "t", long = "tag")]
+        #[structopt(short = "t", long = "tags")]
         tags: Option<Vec<String>>,
 
         /// Allows to overwrite the existing script
@@ -44,13 +52,6 @@ pub enum CliSubcommand {
         /// The alias or name for the script.
         alias: String,
     },
-    /// Run a script matching alias.
-    Run {
-        /// The alias or name for the script.
-        alias: String,
-        /// The positional arguments to send to script.
-        args: Vec<String>,
-    },
     /// alias: ls - List scripts
     ///
     /// Display options are determined by priority in this order:
@@ -69,12 +70,12 @@ pub enum CliSubcommand {
         list_aliases: bool,
 
         /// Display the full command.
-        #[structopt(short = "l", long = "cmd_full")]
-        cmd_full: bool,
+        #[structopt(short = "l", long = "query_full")]
+        query_full: bool,
 
         /// The max number of characters to display from the command.
-        #[structopt(short = "c", long = "cmd_width")]
-        cmd_width: Option<usize>,
+        #[structopt(short = "c", long = "query_width")]
+        query_width: Option<usize>,
 
         /// Filter based on tags.
         #[structopt(short = "t", long = "tag")]

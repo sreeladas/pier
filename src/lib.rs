@@ -1,7 +1,7 @@
 use prettytable::{cell, row, Table};
 use snafu::{ensure, OptionExt, ResultExt};
 use std::fs;
-use std::{path::PathBuf, process::ExitStatus};
+use std::path::PathBuf;
 pub mod cli;
 mod config;
 pub mod error;
@@ -28,22 +28,22 @@ pub struct Pier {
 #[macro_use]
 extern crate lazy_static;
 
-use prettytable::format::LineSeparator;
-use prettytable::format::LinePosition;
 use prettytable::format::FormatBuilder;
+use prettytable::format::LinePosition;
+use prettytable::format::LineSeparator;
 use prettytable::format::TableFormat;
 
 lazy_static! {
-    static ref COOL_SEP: LineSeparator = LineSeparator::new('\u{2256}', '\u{2256}', '\u{2256}', '\u{2256}');
-
+    static ref COOL_SEP: LineSeparator =
+        LineSeparator::new('\u{2256}', '\u{2256}', '\u{2256}', '\u{2256}');
     pub static ref COOL_FORMAT: TableFormat = FormatBuilder::new()
-      .column_separator('\u{22EE}')
-      .borders('\u{22EE}')
-      .separator(LinePosition::Title, *COOL_SEP)
-      .separator(LinePosition::Bottom, *COOL_SEP)
-      .separator(LinePosition::Top, *COOL_SEP)
-      .padding(1, 1)
-      .build();
+        .column_separator('\u{22EE}')
+        .borders('\u{22EE}')
+        .separator(LinePosition::Title, *COOL_SEP)
+        .separator(LinePosition::Bottom, *COOL_SEP)
+        .separator(LinePosition::Top, *COOL_SEP)
+        .padding(1, 1)
+        .build();
 }
 
 impl Pier {
@@ -68,13 +68,17 @@ impl Pier {
             }
         };
 
-        &self.add_script(Script {
-            alias: String::from("hello-pier"),
-            command: String::from("echo Hello, Pier!"),
-            description: Some(String::from("This is an example command.")),
-            reference: None,
-            tags: None,
-        }, false);
+        &self.add_script(
+            Script {
+                alias: String::from("hello-pier"),
+                query: String::from("select * from querylake"),
+                sources: None,
+                description: Some(String::from("This is an example query.")),
+                references: None,
+                tags: None,
+            },
+            false,
+        );
 
         self.write()?;
 
@@ -106,57 +110,46 @@ impl Pier {
         Ok(pier)
     }
 
-    /// Fetches a script that matches the alias
+    /// Fetches a query that matches the alias
     pub fn fetch_script(&self, alias: &str) -> PierResult<&Script> {
         ensure!(!self.config.scripts.is_empty(), NoScriptsExists);
 
-        let script = self
-            .config
-            .scripts
-            .get(alias)
-            .context(AliasNotFound {
-                alias: &alias.to_string(),
-            })?;
+        let script = self.config.scripts.get(alias).context(AliasNotFound {
+            alias: &alias.to_string(),
+        })?;
 
         Ok(script)
     }
 
-    /// Edits a script that matches the alias
+    /// Edits a query that matches the alias
     pub fn edit_script(&mut self, alias: &str) -> PierResult<&Script> {
         ensure!(!self.config.scripts.is_empty(), NoScriptsExists);
 
-        let mut script =
-            self.config
-                .scripts
-                .get_mut(alias)
-                .context(AliasNotFound {
-                    alias: &alias.to_string(),
-                })?;
+        let mut script = self.config.scripts.get_mut(alias).context(AliasNotFound {
+            alias: &alias.to_string(),
+        })?;
 
-        script.command = open_editor(Some(&script.command))?;
+        script.query = open_editor(Some(&script.query))?;
 
         println!("Edited {}", &alias);
 
         Ok(script)
     }
 
-    /// Removes a script that matches the alias
+    /// Removes a query that matches the alias
     pub fn remove_script(&mut self, alias: &str) -> PierResult<()> {
         ensure!(!self.config.scripts.is_empty(), NoScriptsExists);
 
-        self.config
-            .scripts
-            .remove(alias)
-            .context(AliasNotFound {
-                alias: &alias.to_string(),
-            })?;
+        self.config.scripts.remove(alias).context(AliasNotFound {
+            alias: &alias.to_string(),
+        })?;
 
         println!("Removed {}", &alias);
 
         Ok(())
     }
 
-    /// Adds a script that matches the alias
+    /// Adds a query that matches the alias
     pub fn add_script(&mut self, script: Script, force: bool) -> PierResult<()> {
         if !force {
             ensure!(
@@ -230,7 +223,12 @@ impl Pier {
     }
 
     /// Move a script that matches the alias to another alias
-    pub fn move_script(&mut self, from_alias: &str, new_alias: &str, force: bool) -> PierResult<()> {
+    pub fn move_script(
+        &mut self,
+        from_alias: &str,
+        new_alias: &str,
+        force: bool,
+    ) -> PierResult<()> {
         if !force {
             ensure!(
                 !&self.config.scripts.contains_key(new_alias),
@@ -262,13 +260,13 @@ impl Pier {
     pub fn list_scripts(
         &self,
         tags: Option<Vec<String>>,
-        cmd_full: bool,
-        cmd_width: Option<usize>,
+        query_full: bool,
+        query_width: Option<usize>,
     ) -> PierResult<()> {
-        let width = match (cmd_width, self.config.default.command_width) {
+        let width = match (query_width, self.config.default.query_width) {
             (Some(width), _) => width,
             (None, Some(width)) => width,
-            (None, None) => FALLBACK_COMMAND_DISPLAY_WIDTH,
+            (None, None) => FALLBACK_QUERY_DISPLAY_WIDTH,
         };
         ensure!(!self.config.scripts.is_empty(), NoScriptsExists);
 
@@ -279,80 +277,41 @@ impl Pier {
         table.set_titles(row![
             Fc -> "Alias",
             Fc -> "Tags",
-            Fc -> "Command",
+            Fc -> "Query",
+            Fc -> "Data Sources",
             Fc -> "Description",
-        ]);
+            Fc -> "References",
+            ]);
 
         for (alias, script) in self.config.scripts.iter() {
-            let shbang = script.command.starts_with("#!");
             let descp = match &script.description.as_ref() {
                 Some(d) => d,
                 None => "",
             };
 
-            match (&tags, &script.tags) {
+            let script_tags = match (&tags, &script.tags) {
                 (Some(list_tags), Some(script_tags)) => {
-
                     for tag in list_tags {
                         if script_tags.contains(tag) {
-
-                            if shbang {
-                                table.add_row(row![
-                                    FY -> &alias,
-                                    Fg -> script_tags.join(","),
-                                    Fm -> "#! script",
-                                    Fw -> descp,
-                                ]);
-                            } else {
-                                table.add_row(row![
-                                    FY -> &alias,
-                                    Fg -> script_tags.join(","),
-                                    Fb -> script.display_command(cmd_full, width),
-                                    Fw -> descp,
-                                ]);
-                            }
-
+                            table.add_row(row![
+                                FY -> &alias,
+                                Fg -> script_tags.join(","),
+                                Fb -> script.display_query(query_full, width),
+                                Fw -> script.sources.join(","),
+                                Fw -> descp,
+                                Fw -> script.references.join(","),
+                            ]);
                             continue;
                         }
                     }
                 }
                 (None, Some(script_tags)) => {
-                    if shbang {
-                        table.add_row(row![
-                            FY -> &alias,
-                            Fg -> script_tags.join(","),
-                            Fm -> "#! script",
-                            Fw -> descp,
-                        ]);
-                    } else {
-                        table.add_row(row![
-                            FY -> &alias,
-                            Fg -> script_tags.join(","),
-                            Fb -> script.display_command(cmd_full, width),
-                            Fw -> descp,
-                        ]);
-                    }
-
-                    continue;
+                       script_tags.join(",");
+                       continue;
                 }
                 (None, None) => {
-                    if shbang {
-                        table.add_row(row![
-                            FY -> &alias,
-                            Fg -> "",
-                            Fm -> "#! script",
-                            Fw -> descp,
-                        ]);
-                    } else {
-                        table.add_row(row![
-                            FY -> &alias,
-                            Fg -> "",
-                            Fb -> script.display_command(cmd_full, width),
-                            Fw -> descp,
-                        ]);
-                    }
-
-                    continue;
+                       "";
+                       continue;
                 }
                 _ => (),
             };
@@ -362,42 +321,6 @@ impl Pier {
         table.print_tty(true);
 
         Ok(())
-    }
-
-    /// Runs a script and print stdout and stderr of the command.
-    pub fn run_script(&self, alias: &str, args: Vec<String>) -> PierResult<ExitStatus> {
-        let script = self.fetch_script(alias)?;
-        let interpreter = match self.config.default.interpreter {
-            Some(ref interpreter) => interpreter.clone(),
-            None => fallback_shell(),
-        };
-
-        if self.verbose {
-            println!("Starting script \"{}\"", alias);
-            println!("-------------------------");
-        };
-
-        let cmd = match script.has_shebang() {
-            true => script.run_with_shebang(args)?,
-            false => script.run_with_cli_interpreter(&interpreter, args)?,
-        };
-
-        let stdout = String::from_utf8_lossy(&cmd.stdout);
-        let stderr = String::from_utf8_lossy(&cmd.stderr);
-
-        if stdout.len() > 0 {
-            println!("{}", stdout);
-        };
-        if stderr.len() > 0 {
-            eprintln!("{}", stderr);
-        };
-
-        if self.verbose {
-            println!("-------------------------");
-            println!("Script complete");
-        };
-
-        Ok(cmd.status)
     }
 }
 

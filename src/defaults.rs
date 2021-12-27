@@ -1,15 +1,7 @@
 use super::{home, pier_err, xdg_config_home, PierError, PierResult};
 use dirs;
-use std::{env, path::PathBuf};
-pub const FALLBACK_COMMAND_DISPLAY_WIDTH: usize = 80;
-pub const FALLBACK_SHELL: &'static str = "/bin/sh";
-
-pub fn fallback_shell() -> Vec<String> {
-    match env::var("SHELL") {
-        Ok(shell) => vec![shell, String::from("-c")],
-        Err(_) => vec![String::from(FALLBACK_SHELL), String::from("-c")],
-    }
-}
+use std::path::PathBuf;
+pub const FALLBACK_QUERY_DISPLAY_WIDTH: usize = 100;
 
 pub fn fallback_path() -> PierResult<PathBuf> {
     let default_config_paths: Vec<Option<PathBuf>> = vec![
